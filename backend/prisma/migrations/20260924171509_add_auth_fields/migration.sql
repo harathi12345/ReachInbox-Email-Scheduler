@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE `users` ADD COLUMN `passwordHash` VARCHAR(255) NULL,
+    ADD COLUMN `role` VARCHAR(32) NOT NULL DEFAULT 'USER';

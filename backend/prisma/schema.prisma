@@ -1,0 +1,48 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+enum EmailStatus {
+  PENDING
+  SCHEDULED
+  PROCESSING
+  SENT
+  FAILED
+  CANCELLED
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  passwordHash String? @db.VarChar(255)
+  role      String   @default("USER") @db.VarChar(32)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  emails    Email[]
+
+  @@map("users")
+}
+
+model Email {
+  id          String      @id @default(cuid())
+  userId      String
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  to          String
+  subject     String
+  body        String      @db.Text
+  scheduledAt DateTime?
+  status      EmailStatus @default(PENDING)
+  messageId   String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([scheduledAt])
+  @@map("emails")
+}
