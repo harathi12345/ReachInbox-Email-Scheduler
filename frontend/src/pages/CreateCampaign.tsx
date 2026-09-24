@@ -6,6 +6,44 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "../components/ToastContext";
 import { createEmail } from "../lib/api";
 
+const timezoneOptions = [
+	{ value: "Asia/Kolkata", label: "Asia/Kolkata (IST)" },
+	{ value: "UTC", label: "UTC" },
+	{ value: "America/New_York", label: "America/New_York (ET)" },
+];
+
+const formatDateInput = (timeZone: string) => {
+	const parts = new Intl.DateTimeFormat("en-US", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date());
+	const values = Object.fromEntries(parts.map(({ type, value }) => [type, value]));
+	return `${values.year}-${values.month}-${values.day}`;
+};
+
+const getTimezoneOffsetMs = (instant: number, timeZone: string) => {
+	const parts = new Intl.DateTimeFormat("en-US", { timeZone, timeZoneName: "longOffset" }).formatToParts(new Date(instant));
+	const offset = parts.find((part) => part.type === "timeZoneName")?.value || "GMT";
+	if (offset === "GMT" || offset === "UTC") return 0;
+	const match = offset.match(/^GMT([+-])(\d{1,2})(?::?(\d{2}))?$/);
+	if (!match) throw new Error("Unsupported timezone offset.");
+	const minutes = Number(match[2]) * 60 + Number(match[3] || 0);
+	return (match[1] === "+" ? 1 : -1) * minutes * 60_000;
+};
+
+const parseScheduledDate = (date: string, time: string, timeZone: string) => {
+	if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^\d{2}:\d{2}$/.test(time)) return null;
+	const [year, month, day] = date.split("-").map(Number);
+	const [hours, minutes] = time.split(":").map(Number);
+	if (hours > 23 || minutes > 59) return null;
+	const wallClockUtc = Date.UTC(year, month - 1, day, hours, minutes);
+	const wallClock = new Date(wallClockUtc);
+	if (wallClock.getUTCFullYear() !== year || wallClock.getUTCMonth() !== month - 1 || wallClock.getUTCDate() !== day || wallClock.getUTCHours() !== hours || wallClock.getUTCMinutes() !== minutes) return null;
+
+	let instant = wallClockUtc;
+	for (let attempt = 0; attempt < 3; attempt += 1) {
+		instant = wallClockUtc - getTimezoneOffsetMs(instant, timeZone);
+	}
+	return new Date(instant);
+};
+
 const CreateCampaign = () => {
 	const navigate = useNavigate();
 	const { showToast } = useToast();
@@ -15,7 +53,8 @@ const CreateCampaign = () => {
 	const [body, setBody] = useState("");
 	const [recipients, setRecipients] = useState(0);
 	const [sendMode, setSendMode] = useState("later");
-	const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+	const [timezone, setTimezone] = useState("Asia/Kolkata");
+	const [date, setDate] = useState(formatDateInput("Asia/Kolkata"));
 	const [time, setTime] = useState("09:00");
 	const [error, setError] = useState("");
 	const [isSubmitting, setIsSubmitting] = useState(false);
@@ -36,8 +75,8 @@ const CreateCampaign = () => {
 			setError("Add a campaign name, recipients, subject, and email body before continuing.");
 			return;
 		}
-		const requestedDate = sendMode === "now" ? new Date() : new Date(`${date}T${time}`);
-		if (Number.isNaN(requestedDate.getTime())) {
+		const requestedDate = sendMode === "now" ? new Date() : parseScheduledDate(date, time, timezone);
+		if (!requestedDate || Number.isNaN(requestedDate.getTime())) {
 			setError("Choose a valid delivery date and time.");
 			return;
 		}
@@ -66,7 +105,7 @@ const CreateCampaign = () => {
 			<CampaignSection icon={Mail} title="Campaign Details"><label className="field-label" htmlFor="campaign-name">Campaign Name</label><input id="campaign-name" className="field-input mt-2" placeholder="e.g. October product update" value={name} onChange={(event) => setName(event.target.value)} /></CampaignSection>
 			<CampaignSection icon={Users} title="Recipients"><div className="grid gap-4 sm:grid-cols-[1fr_auto] sm:items-end"><div><label className="field-label" htmlFor="recipient-list">Add recipients</label><textarea id="recipient-list" className="field-input mt-2 min-h-24 resize-none" placeholder="Paste email addresses, separated by commas" value={recipientInput} onChange={(event) => { setRecipientInput(event.target.value); setRecipients(event.target.value.split(",").map((email) => email.trim()).filter(Boolean).length); }} /></div><label className="upload-control"><FileUp size={16} />Upload CSV<input type="file" accept=".csv" className="sr-only" onChange={handleFile} /></label></div><div className="mt-3 flex items-center gap-2 text-xs text-slate-500"><Check size={14} className="text-emerald-400" />{recipients} recipients ready</div></CampaignSection>
 			<CampaignSection icon={Mail} title="Email Content"><label className="field-label" htmlFor="subject">Subject</label><input id="subject" className="field-input mt-2" placeholder="Write a clear subject line" value={subject} onChange={(event) => setSubject(event.target.value)} /><label className="field-label mt-5 block" htmlFor="body">Email body</label><textarea id="body" className="field-input mt-2 min-h-40 resize-y" placeholder="Write your email here... Use {{firstName}} to personalize the message." value={body} onChange={(event) => setBody(event.target.value)} /><p className="mt-2 text-xs text-slate-600">Available variable: <span className="text-blue-400">{"{{firstName}}"}</span></p></CampaignSection>
-			<CampaignSection icon={CalendarDays} title="Schedule"><div className="grid gap-4 sm:grid-cols-3"><div><label className="field-label" htmlFor="date">Date</label><input id="date" type="date" className="field-input mt-2" value={date} onChange={(event) => setDate(event.target.value)} /></div><div><label className="field-label" htmlFor="time">Time</label><input id="time" type="time" className="field-input mt-2" value={time} onChange={(event) => setTime(event.target.value)} /></div><div><label className="field-label" htmlFor="timezone">Timezone</label><select id="timezone" className="field-input mt-2"><option>Asia/Kolkata (IST)</option><option>UTC</option><option>America/New_York (ET)</option></select></div></div></CampaignSection>
+			<CampaignSection icon={CalendarDays} title="Schedule"><div className="grid gap-4 sm:grid-cols-3"><div><label className="field-label" htmlFor="date">Date</label><input id="date" type="date" className="field-input mt-2" value={date} onChange={(event) => setDate(event.target.value)} /></div><div><label className="field-label" htmlFor="time">Time</label><input id="time" type="time" className="field-input mt-2" value={time} onChange={(event) => setTime(event.target.value)} /></div><div><label className="field-label" htmlFor="timezone">Timezone</label><select id="timezone" className="field-input mt-2" value={timezone} onChange={(event) => setTimezone(event.target.value)}>{timezoneOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></div></div></CampaignSection>
 			<CampaignSection icon={Clock3} title="Sending Options"><div className="grid gap-3 sm:grid-cols-2"><label className={`choice-card ${sendMode === "now" ? "choice-card-active" : ""}`}><input type="radio" name="sendMode" value="now" checked={sendMode === "now"} onChange={() => setSendMode("now")} /><span><strong>Send immediately</strong><small>Start delivery as soon as the campaign is ready.</small></span></label><label className={`choice-card ${sendMode === "later" ? "choice-card-active" : ""}`}><input type="radio" name="sendMode" value="later" checked={sendMode === "later"} onChange={() => setSendMode("later")} /><span><strong>Schedule for later</strong><small>Deliver at the date and time selected above.</small></span></label></div></CampaignSection>
 			{error && <p className="rounded-lg border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-xs text-rose-300">{error}</p>}
 			<div className="flex flex-col-reverse justify-end gap-3 border-t border-white/[0.07] pt-5 sm:flex-row"><button type="button" className="secondary-button" onClick={() => navigate("/campaigns")}>Save Draft</button><button type="submit" className="primary-button justify-center" disabled={isSubmitting}>{isSubmitting ? "Saving..." : sendMode === "now" ? "Send Campaign" : "Schedule Campaign"}</button></div>

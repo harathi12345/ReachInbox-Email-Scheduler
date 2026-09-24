@@ -177,3 +177,15 @@ For a runtime check, start Redis and the backend, then request `http://localhost
 - Redis connection errors: ensure Docker Desktop is running and run `docker compose up -d redis`.
 - SMTP errors: provide valid Ethereal values in `backend/.env`.
 - Frontend API errors: ensure the backend is running or set `VITE_API_URL` to the backend API URL.
+
+## Bull Board Queue Monitoring
+
+BullMQ is the application queue and Redis is its backend. Bull Board is mounted on the existing Express server to monitor the existing `email-scheduler` queue; it does not create a second queue or replace the worker.
+
+Open the local monitoring dashboard at:
+
+```text
+http://localhost:5000/admin/queues
+```
+
+The dashboard shows real waiting, active, delayed, completed, failed, and paused queue state when available.
