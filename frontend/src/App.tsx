@@ -12,17 +12,10 @@ import Settings from "./pages/Settings";
 import Help from "./pages/Help";
 import { ToastProvider } from "./components/Toast";
 import { pageVariants } from "./components/motion";
-import Login from "./pages/Login";
-import Signup from "./pages/Signup";
-import { useAuth } from "./contexts/AuthContext";
 
 function App() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
-  const { user, loading } = useAuth();
-
-  if (loading) return <div className="auth-shell"><p className="text-sm text-slate-500">Loading your workspace...</p></div>;
-  if (!user) return <Routes><Route path="/signup" element={<Signup />} /><Route path="*" element={<Login />} /></Routes>;
 
   return <ToastProvider>
     <div className="app-shell min-h-screen overflow-hidden">

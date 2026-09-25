@@ -52,7 +52,7 @@ const Dashboard = () => {
 
 	return <div className="mx-auto max-w-[1440px] px-5 py-8 sm:px-8 lg:px-10 lg:py-10">
 		<motion.section className="mb-8 flex flex-col justify-between gap-6 sm:flex-row sm:items-end" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45 }}>
-			<div><p className="section-label">{new Date().toLocaleDateString([], { weekday: "long", month: "long", day: "numeric", year: "numeric" })}</p><h2 className="mt-2 text-2xl font-bold tracking-[-0.04em] text-white sm:text-[30px]">Good evening, {user?.name} <span className="text-xl sm:text-2xl">👋</span></h2><p className="mt-2 max-w-md text-sm text-slate-500">Manage and monitor your email campaigns from one place.</p></div>
+			<div><p className="section-label">{new Date().toLocaleDateString([], { weekday: "long", month: "long", day: "numeric", year: "numeric" })}</p><h2 className="mt-2 text-2xl font-bold tracking-[-0.04em] text-white sm:text-[30px]">Good evening, {user?.name || "there"} <span className="text-xl sm:text-2xl">👋</span></h2><p className="mt-2 max-w-md text-sm text-slate-500">Manage and monitor your email campaigns from one place.</p></div>
 			<motion.button className="primary-button self-start sm:self-auto" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} onClick={() => navigate("/campaigns/create")}><Plus size={17} strokeWidth={2.5} />Create Campaign</motion.button>
 		</motion.section>
 		{error && <p className="mb-5 rounded-lg border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-xs text-rose-300">{error}</p>}
