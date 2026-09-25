@@ -67,6 +67,8 @@ SMTP_PORT=587
 SMTP_USER=<ethereal-username>
 SMTP_PASSWORD=<ethereal-password>
 JWT_SECRET=<long-random-signing-secret>
+DEMO_MODE=true
+DEMO_USER_EMAIL=demo@reachinbox.local
 ```
 
 Never commit `backend/.env` or place real credentials in `.env.example`. URL-encode reserved characters in `DATABASE_URL` passwords.
