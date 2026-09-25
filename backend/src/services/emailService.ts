@@ -23,7 +23,7 @@ export const sendEmail = async (email: Email) => {
   const transporter = getTransporter();
 
   const info = await transporter.sendMail({
-    from: process.env.SMTP_USER,
+    from: email.sender || process.env.SMTP_USER,
     to: email.to,
     subject: email.subject,
     text: email.body,

@@ -19,7 +19,7 @@ type SidebarProps = {
 
 const mainNavigation = [
   { label: "Dashboard", icon: LayoutDashboard, to: "/" },
-  { label: "Campaigns", icon: Mail, to: "/campaigns" },
+  { label: "Emails", icon: Mail, to: "/campaigns" },
   { label: "Schedule", icon: CalendarClock, to: "/schedule" },
   { label: "Analytics", icon: BarChart3, to: "/analytics" },
 ];

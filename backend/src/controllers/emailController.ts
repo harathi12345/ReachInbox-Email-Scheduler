@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
 import prisma from "../config/prisma";
+import { indexEmailDocument, esClient, ELASTICSEARCH_INDEX, updateEmailDocumentStatus } from "../config/elasticsearch";
 import { emailQueue } from "../queues/emailQueue";
 import { asyncHandler } from "../utils/asyncHandler";
 
@@ -26,7 +27,7 @@ const ensureUser = async (body: { userId?: string; userEmail?: string; userName?
 };
 
 export const createEmail = asyncHandler(async (req: Request, res: Response) => {
-  const { to, subject, body, scheduledAt, userId, userEmail, userName } = req.body ?? {};
+  const { to, subject, body, sender, scheduledAt, delayBetweenEmails, hourlyLimit, userId, userEmail, userName } = req.body ?? {};
 
   if (!to || typeof to !== "string" || !validEmail(to.trim())) {
     throw Object.assign(new Error("A valid recipient email is required."), { statusCode: 400 });
@@ -59,6 +60,7 @@ export const createEmail = asyncHandler(async (req: Request, res: Response) => {
     data: {
       userId: user.id,
       to: to.trim(),
+      sender: sender ? sender.trim() : null,
       subject: subject.trim(),
       body: body.trim(),
       scheduledAt: scheduledDate,
@@ -66,12 +68,23 @@ export const createEmail = asyncHandler(async (req: Request, res: Response) => {
     },
   });
 
+  const delayConfig = Number(delayBetweenEmails) || Number(process.env.EMAIL_MIN_DELAY_MS) || 1000;
+  const hourlyLimitConfig = Number(hourlyLimit) || Number(process.env.MAX_EMAILS_PER_HOUR) || 100;
+
   const delay = Math.max(0, scheduledDate.getTime() - now.getTime());
 
   try {
-    await emailQueue.add("send-email", { emailId: email.id }, { jobId: email.id, delay });
+    console.log(`[Queue] Adding job: ${email.id} (Delay: ${delay}ms)`);
+    await emailQueue.add(
+      "send-email",
+      { emailId: email.id, delayBetweenEmails: delayConfig, hourlyLimit: hourlyLimitConfig },
+      { jobId: email.id, delay }
+    );
+    // Index explicitly asynchronously to avoid delaying the API response maliciously
+    indexEmailDocument(email).catch(() => {});
   } catch (error) {
     await prisma.email.update({ where: { id: email.id }, data: { status: "FAILED" } });
+    updateEmailDocumentStatus(email.id, { status: "FAILED" }).catch(() => {});
     throw error;
   }
 
@@ -124,6 +137,8 @@ export const cancelEmail = asyncHandler(async (req: Request, res: Response) => {
     data: { status: "CANCELLED" },
   });
 
+  updateEmailDocumentStatus(emailId, { status: "CANCELLED" }).catch(() => {});
+
   res.status(200).json({
     success: true,
     data: updatedEmail,
@@ -141,5 +156,59 @@ export const deleteEmail = asyncHandler(async (req: Request, res: Response) => {
   await emailQueue.remove(emailId);
   await prisma.email.delete({ where: { id: emailId } });
 
+  updateEmailDocumentStatus(emailId, { status: "DELETED" }).catch(() => {});
+
   res.status(204).send();
+});
+
+export const searchEmails = asyncHandler(async (req: Request, res: Response) => {
+  const q = req.query.q as string;
+  const statusFilter = req.query.status as string;
+
+  let mustQueries: any[] = [];
+  
+  if (q) {
+    mustQueries.push({
+      multi_match: {
+        query: q,
+        fields: ["recipient", "sender", "subject", "body", "status", "id"]
+      }
+    });
+  }
+
+  if (statusFilter) {
+    mustQueries.push({
+      term: { status: statusFilter }
+    });
+  }
+
+  if (mustQueries.length === 0) {
+    mustQueries.push({ match_all: {} });
+  }
+
+  try {
+    const response = await esClient.search({
+      index: ELASTICSEARCH_INDEX,
+      query: {
+         bool: {
+           must: mustQueries
+         }
+      },
+      sort: [
+         { createdAt: { order: "desc" } }
+      ]
+    });
+
+    const hits = response.hits.hits;
+    const items = hits.map((hit: any) => hit._source);
+
+    res.status(200).json({
+      success: true,
+      results: items,
+      total: typeof response.hits.total === "number" ? response.hits.total : response.hits.total?.value || 0
+    });
+  } catch (error: any) {
+    console.error("[Elasticsearch] Search failed:", error.message);
+    res.status(200).json({ success: true, results: [], total: 0 });
+  }
 });

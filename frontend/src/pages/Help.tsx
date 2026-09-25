@@ -3,9 +3,9 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ArrowUpRight, ChevronDown, LifeBuoy, Mail, Search, MessageCircleQuestion } from "lucide-react";
 
 const faqs = [
-	{ question: "How do I create a campaign?", answer: "Open Campaigns from the sidebar, select New Campaign, then add your recipients, email content, and delivery preferences. Save a draft or schedule it when you are ready." },
-	{ question: "How do I schedule an email?", answer: "During campaign creation, choose Schedule for later under Sending Options, then select a date, time, and timezone before scheduling the campaign." },
-	{ question: "How do I upload recipients?", answer: "In the Recipients section of the campaign builder, choose Upload CSV. Your CSV should include the email address for each recipient and can include firstName for personalization." },
+	{ question: "How do I compose an email?", answer: "Open Emails from the sidebar, select Compose New Email, then add your recipients, subject, email body, and delivery preferences. Schedule it when you are ready." },
+	{ question: "How do I schedule an email?", answer: "Choose your start time, send delay, and hourly limit under Schedule & Queue Settings before scheduling." },
+	{ question: "How do I upload recipients?", answer: "In the Compose form, choose Upload CSV or TXT File. Your file should include the email address for each recipient." },
 	{ question: "How do I view analytics?", answer: "Select Analytics from the sidebar to review delivery, open, click, and failure trends across the selected reporting period." },
 ];
 

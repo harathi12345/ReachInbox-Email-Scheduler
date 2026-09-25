@@ -7,11 +7,11 @@ import { useAuth } from "../contexts/AuthContext";
 type TopbarProps = { onMenuClick: () => void };
 
 const routeLabels: Record<string, { title: string; subtitle: string }> = {
-	"/": { title: "Dashboard", subtitle: "Overview of your email campaigns" },
-	"/campaigns": { title: "Campaigns", subtitle: "Manage and monitor your email campaigns." },
-	"/campaigns/create": { title: "Create Campaign", subtitle: "Build and schedule a new email campaign." },
+	"/": { title: "Dashboard", subtitle: "Overview of your email deliveries" },
+	"/campaigns": { title: "Emails", subtitle: "Manage and monitor your scheduled and sent emails." },
+	"/campaigns/create": { title: "Compose New Email", subtitle: "Build and schedule a new email delivery." },
 	"/schedule": { title: "Schedule", subtitle: "Manage your upcoming email deliveries." },
-	"/analytics": { title: "Analytics", subtitle: "Track the performance of your email campaigns." },
+	"/analytics": { title: "Analytics", subtitle: "Track the performance of your email deliveries." },
 	"/settings": { title: "Settings", subtitle: "Manage your ReachInbox workspace preferences." },
 	"/help": { title: "Help & Support", subtitle: "Find answers and get help with ReachInbox." },
 };
@@ -43,15 +43,21 @@ const Topbar = ({ onMenuClick }: TopbarProps) => {
 			</div>
 		</div>
 		<div className="flex items-center gap-3 sm:gap-5">
-			<button className="icon-button hidden sm:flex" aria-label="Search campaigns" title="Search campaigns" onClick={() => navigate("/campaigns")}><Search size={18} /></button>
-			<div className="relative" ref={notificationRef}><button className="icon-button relative" aria-label="Notifications" title="Notifications" aria-expanded={notificationOpen} onClick={() => { setNotificationOpen(!notificationOpen); setProfileOpen(false); }}><Bell size={18} />{unread && <span className="notification-dot absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-blue-400" />}</button>{notificationOpen && <div className="dropdown-panel right-0 top-11 w-80"><div className="flex items-center justify-between border-b border-white/[0.07] px-4 py-3"><strong className="text-xs text-white">Notifications</strong>{unread && <button className="text-[10px] text-blue-300" onClick={() => { localStorage.setItem("reachinbox_notifications_read", String(Date.now())); setNotificationOpen(false); }}>Mark as read</button>}</div>{notifications.length === 0 ? <p className="px-4 py-8 text-center text-xs text-slate-500">No new notifications</p> : <div className="max-h-72 overflow-auto">{notifications.map((item) => <div key={item.id} className="border-b border-white/[0.05] px-4 py-3"><p className="text-xs font-semibold text-slate-200">Campaign {item.status.toLowerCase()}</p><p className="mt-1 truncate text-[11px] text-slate-500">{item.subject}</p></div>)}</div>}</div>}</div>
+			<button className="icon-button hidden sm:flex" aria-label="Search emails" title="Search emails" onClick={() => navigate("/campaigns")}><Search size={18} /></button>
+			<div className="relative" ref={notificationRef}><button className="icon-button relative" aria-label="Notifications" title="Notifications" aria-expanded={notificationOpen} onClick={() => { setNotificationOpen(!notificationOpen); setProfileOpen(false); }}><Bell size={18} />{unread && <span className="notification-dot absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-blue-400" />}</button>{notificationOpen && <div className="dropdown-panel right-0 top-11 w-80"><div className="flex items-center justify-between border-b border-white/[0.07] px-4 py-3"><strong className="text-xs text-white">Notifications</strong>{unread && <button className="text-[10px] text-blue-300" onClick={() => { localStorage.setItem("reachinbox_notifications_read", String(Date.now())); setNotificationOpen(false); }}>Mark as read</button>}</div>{notifications.length === 0 ? <p className="px-4 py-8 text-center text-xs text-slate-500">No new notifications</p> : <div className="max-h-72 overflow-auto">{notifications.map((item) => <div key={item.id} className="border-b border-white/[0.05] px-4 py-3"><p className="text-xs font-semibold text-slate-200">Email {item.status.toLowerCase()}</p><p className="mt-1 truncate text-[11px] text-slate-500">{item.subject}</p></div>)}</div>}</div>}</div>
 			<div className="hidden h-7 w-px bg-white/[0.08] sm:block" />
-			<div className="relative" ref={dropdownRef}><button className="flex items-center gap-2 rounded-lg p-1 transition-colors hover:bg-white/[0.05]" aria-expanded={profileOpen} onClick={() => { setProfileOpen(!profileOpen); setNotificationOpen(false); }}><span className="avatar avatar-purple">{initials}</span><span className="hidden text-left sm:block"><span className="block max-w-28 truncate text-xs font-semibold text-slate-200">{user?.name || "Guest"}</span><span className="block text-[10px] text-slate-500">{user?.role || "User"}</span></span>
+			<div className="relative" ref={dropdownRef}><button className="flex items-center gap-2 rounded-lg p-1 transition-colors hover:bg-white/[0.05]" aria-expanded={profileOpen} onClick={() => { setProfileOpen(!profileOpen); setNotificationOpen(false); }}>
+				{user?.avatar ? (
+					<img src={user.avatar} alt={user.name} className="h-8 w-8 rounded-full border border-white/[0.1] object-cover" />
+				) : (
+					<span className="avatar avatar-purple">{initials}</span>
+				)}
+				<span className="hidden text-left sm:block"><span className="block max-w-28 truncate text-xs font-semibold text-slate-200">{user?.name || "Guest"}</span><span className="block text-[10px] text-slate-500">{user?.role || "User"}</span></span>
 				<ChevronDown size={14} className="hidden text-slate-500 sm:block" />
 			</button>{profileOpen && <div className="dropdown-panel right-0 top-11 w-48"><button className="dropdown-item" onClick={() => { setProfileOpen(false); navigate("/settings"); }}><UserRound size={14} />Profile</button><button className="dropdown-item" onClick={() => { setProfileOpen(false); navigate("/settings"); }}><Settings size={14} />Settings</button><button className="dropdown-item text-rose-300" onClick={() => { setProfileOpen(false); void logout(); }}><LogOut size={14} />Sign out</button></div>}</div>
 		</div>
 	</header>
-  );
+	);
 };
 
 export default Topbar;

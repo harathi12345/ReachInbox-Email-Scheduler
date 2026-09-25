@@ -4,6 +4,6 @@ import { defineConfig, env } from "prisma/config";
 export default defineConfig({
   schema: "prisma/schema.prisma",
   datasource: {
-    url: process.env.DATABASE_URL || "mysql://dummy:dummy@localhost/dummy",
+    url: env("DATABASE_URL"),
   },
 });

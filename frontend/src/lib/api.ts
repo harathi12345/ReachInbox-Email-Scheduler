@@ -22,10 +22,19 @@ async function api<T>(path: string, options: RequestInit = {}): Promise<T> {
   const payload = await response.json().catch(() => ({}));
 
   if (!response.ok) {
+    if (response.status === 401) {
+      throw new Error(payload?.message || "Please sign in to continue.");
+    }
+    if (response.status === 403) {
+      throw new Error(payload?.message || "Your account is not authorized to access this resource.");
+    }
+    if (response.status >= 500) {
+      throw new Error(payload?.message || "Something went wrong on the server.");
+    }
     throw new Error(payload?.message || "Request failed");
   }
 
-  return payload?.data ?? payload;
+  return payload?.user ?? payload?.data ?? payload;
 }
 
 export type DashboardStats = { total: number; sent: number; scheduled: number; pending: number; failed: number; cancelled: number };
@@ -37,9 +46,12 @@ export const fetchEmails = () => api<EmailRecord[]>("/emails");
 export const createEmail = (payload: Record<string, unknown>) => api<EmailRecord>("/emails", { method: "POST", body: JSON.stringify(payload) });
 export const cancelEmail = (id: string) => api<EmailRecord>(`/emails/${id}/cancel`, { method: "POST" });
 export const deleteEmail = (id: string) => api<EmailRecord>(`/emails/${id}`, { method: "DELETE" });
-export type AuthUser = { id: string; name: string; email: string; role: string };
+export type AuthUser = { id: string; name: string; email: string; role: string; avatar?: string | null };
 export const authLogin = (payload: { email: string; password: string }) => api<{ user: AuthUser; token: string }>("/auth/login", { method: "POST", body: JSON.stringify(payload) });
 export const authRegister = (payload: { name: string; email: string; password: string }) => api<{ user: AuthUser; token: string }>("/auth/register", { method: "POST", body: JSON.stringify(payload) });
 export const authLogout = () => api<{ message: string }>("/auth/logout", { method: "POST" });
 export const authMe = () => api<AuthUser>("/auth/me");
 export const updateProfile = (payload: { name: string; email: string }) => api<AuthUser>("/auth/me", { method: "PUT", body: JSON.stringify(payload) });
+
+export const fetchSlackStatus = () => api<{ connected: boolean }>("/slack/status");
+export const disconnectSlackApi = () => api<{ success: boolean; message: string }>("/slack/disconnect", { method: "POST" });

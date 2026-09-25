@@ -16,16 +16,34 @@ enum EmailStatus {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  name      String
-  email     String   @unique
-  passwordHash String? @db.VarChar(255)
-  role      String   @default("USER") @db.VarChar(32)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  emails    Email[]
+  id           String             @id @default(cuid())
+  name         String
+  email        String             @unique
+  passwordHash String?            @db.VarChar(255)
+  googleId     String?            @unique
+  avatar       String?            @db.VarChar(255)
+  role         String             @default("USER") @db.VarChar(32)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  emails       Email[]
+  slack        SlackConnection?
 
   @@map("users")
+}
+
+model SlackConnection {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  teamId      String?
+  teamName    String?
+  slackUserId String?
+  accessToken String   @db.VarChar(255)
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("slack_connections")
 }
 
 model Email {
@@ -33,6 +51,7 @@ model Email {
   userId      String
   user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   to          String
+  sender      String?     @db.VarChar(255)
   subject     String
   body        String      @db.Text
   scheduledAt DateTime?
