@@ -25,7 +25,6 @@
     "express": "^5.2.1",
     "ioredis": "^6.0.0",
     "jsonwebtoken": "^9.0.3",
-    "mariadb": "^3.5.4",
     "nodemailer": "^10.0.10",
     "prisma": "^7.10.0"
   },
