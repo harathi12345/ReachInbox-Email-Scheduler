@@ -1,10 +1,13 @@
-const API_URL = (import.meta.env.VITE_API_URL || (import.meta.env.DEV ? "http://localhost:5000/api" : "https://reachinbox-email-scheduler-production-8739.up.railway.app/api")).replace(/\/$/, "");
+const API_URL = (import.meta.env.VITE_API_URL || (import.meta.env.DEV ? "http://localhost:5000" : "https://reachinbox-email-scheduler-production-8739.up.railway.app"))
+  .replace(/\/$/, "")
+  .replace(/\/api$/, "");
+const API_PREFIX = "/api";
 
 async function api<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = localStorage.getItem("reachinbox_token");
   let response: Response;
   try {
-    response = await fetch(`${API_URL}${path}`, {
+    response = await fetch(`${API_URL}${API_PREFIX}${path}`, {
       ...options,
       headers: {
         "Content-Type": "application/json",
