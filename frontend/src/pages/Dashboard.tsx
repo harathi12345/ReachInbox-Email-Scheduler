@@ -48,7 +48,10 @@ const Dashboard = () => {
 
 	const handleSlackConnect = () => {
 		const token = localStorage.getItem("reachinbox_token");
-		const rawBaseUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
+		const DEFAULT_BACKEND_URL = import.meta.env.DEV
+			? "http://localhost:5000"
+			: "https://reachinbox-backend-ncnd.onrender.com";
+		const rawBaseUrl = import.meta.env.VITE_API_URL || DEFAULT_BACKEND_URL;
 		const backendUrl = rawBaseUrl.replace(/\/$/, "").replace(/\/api$/, "");
 		window.location.href = `${backendUrl}/auth/slack?token=${token || ""}`;
 	};

@@ -1,4 +1,8 @@
-const API_URL = (import.meta.env.VITE_API_URL || (import.meta.env.DEV ? "http://localhost:5000" : "https://reachinbox-email-scheduler-production-8739.up.railway.app"))
+const DEFAULT_BACKEND_URL = import.meta.env.DEV
+  ? "http://localhost:5000"
+  : "https://reachinbox-backend-ncnd.onrender.com";
+
+const API_URL = (import.meta.env.VITE_API_URL || DEFAULT_BACKEND_URL)
   .replace(/\/$/, "")
   .replace(/\/api$/, "");
 const API_PREFIX = "/api";
