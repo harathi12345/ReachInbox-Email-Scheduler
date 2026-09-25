@@ -1,6 +1,5 @@
 import { PrismaMariaDb } from "@prisma/adapter-mariadb";
 import { PrismaClient } from "@prisma/client";
-import * as mariadb from "mariadb";
 
 declare global {
   var prisma: PrismaClient | undefined;
@@ -11,8 +10,18 @@ if (!databaseUrl) {
   throw new Error("DATABASE_URL is required to start the backend.");
 }
 
-const pool = mariadb.createPool(databaseUrl.replace(/^mysql:/, "mariadb:"));
-const adapter = new PrismaMariaDb(pool as any);
+import dns from "node:dns";
+
+dns.setDefaultResultOrder("ipv4first");
+
+const parsedDatabaseUrl = new URL(databaseUrl);
+const adapter = new PrismaMariaDb({
+  host: parsedDatabaseUrl.hostname,
+  port: Number(parsedDatabaseUrl.port || 3306),
+  user: decodeURIComponent(parsedDatabaseUrl.username),
+  password: decodeURIComponent(parsedDatabaseUrl.password),
+  database: parsedDatabaseUrl.pathname.slice(1),
+});
 
 const prisma =
   globalThis.prisma ??
