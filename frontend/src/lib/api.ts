@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+const API_URL = (import.meta.env.VITE_API_URL || (import.meta.env.DEV ? "http://localhost:5000/api" : "https://reachinbox-email-scheduler-production-8739.up.railway.app/api")).replace(/\/$/, "");
 
 async function api<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = localStorage.getItem("reachinbox_token");
