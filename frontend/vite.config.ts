@@ -7,4 +7,8 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
+  preview: {
+    host: '0.0.0.0',
+    allowedHosts: ['strong-creativity-production-ca46.up.railway.app'],
+  },
 })
