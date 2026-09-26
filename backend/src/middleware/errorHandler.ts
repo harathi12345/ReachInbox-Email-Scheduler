@@ -23,7 +23,7 @@ export const errorHandler = (
   const statusCode = err.statusCode ?? 500;
   const message = statusCode === 500 ? "Internal server error" : err.message;
 
-  console.error(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`, err);
+  console.error(`[ErrorHandler] [${new Date().toISOString()}] ${req.method} ${req.originalUrl} - Status ${statusCode}:`, err);
 
   res.status(statusCode).json({
     success: false,

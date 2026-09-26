@@ -81,33 +81,65 @@ export const googleCallback = asyncHandler(async (req: Request, res: Response) =
 });
 
 export const register = asyncHandler(async (req: Request, res: Response) => {
-  const { name, email, password } = req.body ?? {};
-  if (typeof name !== "string" || !name.trim()) throw Object.assign(new Error("Name is required."), { statusCode: 400 });
-  if (typeof email !== "string" || !validEmail(email.trim())) throw Object.assign(new Error("A valid email is required."), { statusCode: 400 });
-  if (typeof password !== "string" || password.length < 8) throw Object.assign(new Error("Password must be at least 8 characters."), { statusCode: 400 });
+  try {
+    const { name, email, password } = req.body ?? {};
+    if (typeof name !== "string" || !name.trim()) throw Object.assign(new Error("Name is required."), { statusCode: 400 });
+    if (typeof email !== "string" || !validEmail(email.trim())) throw Object.assign(new Error("A valid email is required."), { statusCode: 400 });
+    if (typeof password !== "string" || password.length < 8) throw Object.assign(new Error("Password must be at least 8 characters."), { statusCode: 400 });
 
-  const normalizedEmail = email.trim().toLowerCase();
-  const existing = await prisma.user.findUnique({ where: { email: normalizedEmail } });
-  if (existing?.passwordHash) throw Object.assign(new Error("An account with this email already exists."), { statusCode: 409 });
+    const normalizedEmail = email.trim().toLowerCase();
+    const existing = await prisma.user.findUnique({ where: { email: normalizedEmail } });
+    if (existing?.passwordHash) throw Object.assign(new Error("An account with this email already exists."), { statusCode: 409 });
 
-  const user = existing
-    ? await prisma.user.update({ where: { id: existing.id }, data: { name: name.trim(), passwordHash: await bcrypt.hash(password, 12) } })
-    : await prisma.user.create({ data: { name: name.trim(), email: normalizedEmail, passwordHash: await bcrypt.hash(password, 12) } });
+    const hashedPassword = await bcrypt.hash(password, 12);
+    const user = existing
+      ? await prisma.user.update({ where: { id: existing.id }, data: { name: name.trim(), passwordHash: hashedPassword } })
+      : await prisma.user.create({ data: { name: name.trim(), email: normalizedEmail, passwordHash: hashedPassword } });
 
-  const safeUser = publicUser(user);
-  res.status(201).json({ success: true, data: { user: safeUser, token: issueToken({ id: user.id, email: user.email }) } });
+    const safeUser = publicUser(user);
+    res.status(201).json({ success: true, data: { user: safeUser, token: issueToken({ id: user.id, email: user.email }) } });
+  } catch (error: any) {
+    if (!error.statusCode || error.statusCode === 500) {
+      console.error("[Auth Register Error]:", error);
+    }
+    throw error;
+  }
 });
 
 export const login = asyncHandler(async (req: Request, res: Response) => {
-  const { email, password } = req.body ?? {};
-  if (typeof email !== "string" || typeof password !== "string") throw Object.assign(new Error("Email and password are required."), { statusCode: 400 });
+  try {
+    const { email, password } = req.body ?? {};
+    if (typeof email !== "string" || typeof password !== "string" || !email.trim() || !password) {
+      throw Object.assign(new Error("Email and password are required."), { statusCode: 400 });
+    }
 
-  const user = await prisma.user.findUnique({ where: { email: email.trim().toLowerCase() } });
-  const passwordMatches = user?.passwordHash ? await bcrypt.compare(password, user.passwordHash) : false;
-  if (!user || !passwordMatches) throw Object.assign(new Error("Invalid email or password."), { statusCode: 401 });
+    const normalizedEmail = email.trim().toLowerCase();
+    const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
 
-  const safeUser = publicUser(user);
-  res.status(200).json({ success: true, data: { user: safeUser, token: issueToken({ id: user.id, email: user.email }) } });
+    let passwordMatches = false;
+    if (user?.passwordHash) {
+      try {
+        passwordMatches = await bcrypt.compare(password, user.passwordHash);
+      } catch (bcryptErr) {
+        console.error("[Auth Login] bcrypt compare failed:", bcryptErr);
+        passwordMatches = false;
+      }
+    }
+
+    if (!user || !passwordMatches) {
+      throw Object.assign(new Error("Invalid email or password."), { statusCode: 401 });
+    }
+
+    const safeUser = publicUser(user);
+    const token = issueToken({ id: user.id, email: user.email });
+
+    res.status(200).json({ success: true, data: { user: safeUser, token } });
+  } catch (error: any) {
+    if (!error.statusCode || error.statusCode === 500) {
+      console.error("[Auth Login Error]:", error);
+    }
+    throw error;
+  }
 });
 
 export const logout = asyncHandler(async (req: Request, res: Response) => {
