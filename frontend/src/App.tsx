@@ -9,6 +9,8 @@ import Campaigns from "./pages/Campaigns";
 import CreateCampaign from "./pages/CreateCampaign";
 import Schedule from "./pages/Schedule";
 import Analytics from "./pages/Analytics";
+import BullMQ from "./pages/BullMQ";
+import Slack from "./pages/Slack";
 import Settings from "./pages/Settings";
 import Help from "./pages/Help";
 import Login from "./pages/Login";
@@ -83,6 +85,8 @@ function App() {
                 <Route path="/campaigns/create" element={<CreateCampaign />} />
                 <Route path="/schedule" element={<Schedule />} />
                 <Route path="/analytics" element={<Analytics />} />
+                <Route path="/bullmq" element={<BullMQ />} />
+                <Route path="/slack" element={<Slack />} />
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/help" element={<Help />} />
                 <Route path="/login" element={<Navigate to="/" replace />} />

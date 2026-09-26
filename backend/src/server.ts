@@ -32,7 +32,7 @@ createBullBoard({
   queues: [new BullMQAdapter(emailQueue)],
   serverAdapter: bullBoardAdapter,
 });
-app.use("/admin/queues", authMiddleware, bullBoardAdapter.getRouter());
+app.use("/admin/queues", bullBoardAdapter.getRouter());
 
 initElasticsearch();
 

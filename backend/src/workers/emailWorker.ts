@@ -167,15 +167,25 @@ export const createEmailWorker = () => {
           },
         });
         updateEmailDocumentStatus(email.id, { status: "SENT", sentAt: new Date() }).catch(() => {});
-        console.log(`[Worker] Successfully sent email: ${email.id}`);
+        console.log(`[Worker] Successfully sent email: ${email.id} to ${email.to}`);
         return info;
-      } catch (error) {
+      } catch (error: any) {
         await prisma.email.update({
           where: { id: email.id },
           data: { status: "FAILED" },
         });
         updateEmailDocumentStatus(email.id, { status: "FAILED" }).catch(() => {});
-        console.error(`[Worker] Failed to send email: ${email.id}`, error);
+
+        const errName = error?.name || "Error";
+        const errCode = error?.code || "UNKNOWN";
+        const errMessage = error?.message || String(error);
+
+        console.error(
+          `[Worker] Failed to send email. ID: ${email.id}, Recipient: ${email.to}, Subject: "${email.subject}", ErrorName: ${errName}, ErrorCode: ${errCode}, Message: ${errMessage}`
+        );
+        if (error?.stack) {
+          console.error(`[Worker] Error stack for email ${email.id}:`, error.stack);
+        }
         throw error;
       }
     },
@@ -187,9 +197,9 @@ export const createEmailWorker = () => {
 
   worker.on("ready", () => console.log("[worker] ready"));
   worker.on("failed", (job, error) => {
-    console.error(`[worker] job failed${job ? ` ${job.id}` : ""}`, error.message);
+    console.error(`[worker] job failed ${job ? `(Job ID: ${job.id}, Data: ${JSON.stringify(job.data)})` : ""}:`, error.message);
   });
-  worker.on("error", (error) => console.error("[worker] error", error.message));
+  worker.on("error", (error) => console.error("[worker] error:", error.message));
 
   return worker;
 };

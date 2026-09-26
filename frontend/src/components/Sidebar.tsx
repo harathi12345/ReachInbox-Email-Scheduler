@@ -3,6 +3,8 @@ import {
   Mail,
   CalendarClock,
   BarChart3,
+  Layers,
+  MessageSquare,
   Settings,
   HelpCircle,
   X,
@@ -22,6 +24,8 @@ const mainNavigation = [
   { label: "Emails", icon: Mail, to: "/campaigns" },
   { label: "Schedule", icon: CalendarClock, to: "/schedule" },
   { label: "Analytics", icon: BarChart3, to: "/analytics" },
+  { label: "BullMQ", icon: Layers, to: "/bullmq" },
+  { label: "Slack", icon: MessageSquare, to: "/slack" },
 ];
 
 const supportNavigation = [

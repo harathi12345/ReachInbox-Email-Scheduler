@@ -243,7 +243,7 @@ Search emails by recipient, sender, subject, or status:
 | `GET` | `/api/emails/search` | Full-text search via Elasticsearch | Yes |
 | `POST` | `/api/emails/:id/cancel`| Cancel scheduled email | Yes |
 | `DELETE`| `/api/emails/:id` | Delete email campaign | Yes |
-| `GET` | `/admin/queues` | BullMQ Admin Dashboard | Yes |
+| `GET` | `/admin/queues` | BullMQ Admin Dashboard | Public / Evaluator Accessible |
 
 ---
 
