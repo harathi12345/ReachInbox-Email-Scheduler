@@ -3,11 +3,17 @@ import type { Email } from "@prisma/client";
 
 const validEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 
+const cleanEnvStr = (val?: string) => {
+  if (!val) return "";
+  return val.trim().replace(/^["']|["']$/g, "");
+};
+
 const getTransporter = () => {
-  const host = process.env.SMTP_HOST;
-  const port = Number(process.env.SMTP_PORT || 587);
-  const user = process.env.SMTP_USER;
-  const password = process.env.SMTP_PASSWORD;
+  const host = cleanEnvStr(process.env.SMTP_HOST);
+  const rawPort = cleanEnvStr(process.env.SMTP_PORT);
+  const port = parseInt(rawPort || "587", 10) || 587;
+  const user = cleanEnvStr(process.env.SMTP_USER);
+  const password = cleanEnvStr(process.env.SMTP_PASSWORD);
 
   if (!host || !user || !password) {
     throw new Error("SMTP configuration is missing. Set SMTP_HOST, SMTP_PORT, SMTP_USER, and SMTP_PASSWORD in your environment.");
@@ -16,20 +22,32 @@ const getTransporter = () => {
   return nodemailer.createTransport({
     host,
     port,
-    secure: Number(port) === 465,
+    secure: port === 465,
     auth: { user, pass: password },
     tls: {
       rejectUnauthorized: false,
     },
-    connectionTimeout: 15000,
-    greetingTimeout: 15000,
-    socketTimeout: 15000,
+    connectionTimeout: 20000,
+    greetingTimeout: 20000,
+    socketTimeout: 20000,
   });
+};
+
+export const verifySmtpTransporter = async () => {
+  try {
+    const transporter = getTransporter();
+    await transporter.verify();
+    console.log("[SMTP] Transporter verification successful.");
+    return true;
+  } catch (error: any) {
+    console.error("[SMTP] Transporter verification warning:", error?.message || String(error));
+    return false;
+  }
 };
 
 export const sendEmail = async (email: Email) => {
   const transporter = getTransporter();
-  const smtpUser = process.env.SMTP_USER || "";
+  const smtpUser = cleanEnvStr(process.env.SMTP_USER);
 
   let fromAddress = smtpUser;
   if (email.sender && email.sender.trim()) {

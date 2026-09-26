@@ -4,17 +4,30 @@ import axios from "axios";
 import prisma from "../config/prisma";
 import { asyncHandler } from "../utils/asyncHandler";
 
+const cleanEnvStr = (val?: string) => {
+  if (!val) return "";
+  return val.trim().replace(/^["']|["']$/g, "");
+};
+
+const getClientOrigin = () => {
+  const origin = process.env.CLIENT_ORIGIN || process.env.FRONTEND_URL || process.env.CORS_ORIGIN || "http://localhost:5173";
+  return origin.replace(/\/$/, "");
+};
+
 export const slackLogin = asyncHandler(async (req: Request, res: Response) => {
-  const SLACK_CLIENT_ID = process.env.SLACK_CLIENT_ID;
-  const SLACK_REDIRECT_URI = process.env.SLACK_REDIRECT_URI;
-  if (!SLACK_CLIENT_ID || !SLACK_REDIRECT_URI) {
-    throw Object.assign(new Error("Slack OAuth configuration is missing"), { statusCode: 500 });
+  const SLACK_CLIENT_ID = cleanEnvStr(process.env.SLACK_CLIENT_ID);
+  const defaultCallback = `${req.protocol}://${req.get("host")}/auth/slack/callback`;
+  const SLACK_REDIRECT_URI = cleanEnvStr(process.env.SLACK_REDIRECT_URI) || defaultCallback;
+
+  if (!SLACK_CLIENT_ID) {
+    console.error("[Slack Auth] SLACK_CLIENT_ID environment variable is missing.");
+    return res.redirect(
+      `${getClientOrigin()}/slack?error=${encodeURIComponent(
+        "Slack OAuth configuration is missing on the server. Please set SLACK_CLIENT_ID and SLACK_CLIENT_SECRET in environment variables."
+      )}`
+    );
   }
 
-  // Generate an arbitrary "state" parameter to identify the user when Slack redirects back
-  // For standard architectures, passing a JWT token in state is possible, but since the user logs in from the frontend dashboard,
-  // we can use a cookie or pass the user ID as state if the endpoint is called with auth.
-  // Wait, GET /auth/slack is usually an unauthenticated or authenticated route. If authenticated, we can encode userId in state.
   const token = (req.query.token as string) || (req.header("authorization")?.replace(/^Bearer\s+/, "")) || req.cookies?.token;
   
   const authUrl = `https://slack.com/oauth/v2/authorize?client_id=${SLACK_CLIENT_ID}&user_scope=chat:write&redirect_uri=${encodeURIComponent(SLACK_REDIRECT_URI)}&state=${encodeURIComponent(token || "no-token")}`;
@@ -24,12 +37,13 @@ export const slackLogin = asyncHandler(async (req: Request, res: Response) => {
 export const slackCallback = asyncHandler(async (req: Request, res: Response) => {
   const code = req.query.code as string;
   const state = req.query.state as string;
-  const SLACK_CLIENT_ID = process.env.SLACK_CLIENT_ID;
-  const SLACK_CLIENT_SECRET = process.env.SLACK_CLIENT_SECRET;
-  const SLACK_REDIRECT_URI = process.env.SLACK_REDIRECT_URI || "http://localhost:5000/auth/slack/callback";
+  const SLACK_CLIENT_ID = cleanEnvStr(process.env.SLACK_CLIENT_ID);
+  const SLACK_CLIENT_SECRET = cleanEnvStr(process.env.SLACK_CLIENT_SECRET);
+  const defaultCallback = `${req.protocol}://${req.get("host")}/auth/slack/callback`;
+  const SLACK_REDIRECT_URI = cleanEnvStr(process.env.SLACK_REDIRECT_URI) || defaultCallback;
 
   if (!code || !SLACK_CLIENT_ID || !SLACK_CLIENT_SECRET) {
-    return res.status(400).send("Invalid Slack authorization callback request.");
+    return res.status(400).send("Invalid Slack authorization callback request. Missing code or client credentials.");
   }
 
   const getClientOrigin = () => {
