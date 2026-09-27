@@ -9,16 +9,22 @@ const publicUser = (user: { id: string; name: string; email: string; role: strin
 
 export const googleLogin = asyncHandler(async (req: Request, res: Response) => {
   const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
-  const GOOGLE_CALLBACK_URL = process.env.GOOGLE_CALLBACK_URL || "http://localhost:5000/auth/google/callback";
-  
+  const defaultCallback = process.env.NODE_ENV === "production"
+    ? "https://reachinbox-backend-ncnd.onrender.com/auth/google/callback"
+    : "http://localhost:5000/auth/google/callback";
+  const GOOGLE_CALLBACK_URL = (process.env.GOOGLE_CALLBACK_URL || process.env.GOOGLE_REDIRECT_URI || defaultCallback).trim();
+  const defaultClientOrigin = process.env.NODE_ENV === "production"
+    ? "https://reachinbox-frontend-1mww.onrender.com"
+    : "http://localhost:5173";
+  const clientOrigin = (process.env.CLIENT_ORIGIN || process.env.FRONTEND_URL || process.env.CORS_ORIGIN || defaultClientOrigin).trim().replace(/\/$/, "");
+
   if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_ID.trim()) {
-    const clientOrigin = process.env.CORS_ORIGIN || "http://localhost:5173";
     return res.redirect(
       `${clientOrigin}/login?error=${encodeURIComponent("Google OAuth configuration is missing. Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in backend/.env")}`
     );
   }
 
-  const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${GOOGLE_CLIENT_ID.trim()}&redirect_uri=${encodeURIComponent(GOOGLE_CALLBACK_URL.trim())}&response_type=code&scope=email profile`;
+  const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${GOOGLE_CLIENT_ID.trim()}&redirect_uri=${encodeURIComponent(GOOGLE_CALLBACK_URL)}&response_type=code&scope=email profile`;
   res.redirect(authUrl);
 });
 
@@ -26,7 +32,14 @@ export const googleCallback = asyncHandler(async (req: Request, res: Response) =
   const code = req.query.code as string;
   const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
   const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
-  const GOOGLE_CALLBACK_URL = process.env.GOOGLE_CALLBACK_URL || "http://localhost:5000/auth/google/callback";
+  const defaultCallback = process.env.NODE_ENV === "production"
+    ? "https://reachinbox-backend-ncnd.onrender.com/auth/google/callback"
+    : "http://localhost:5000/auth/google/callback";
+  const GOOGLE_CALLBACK_URL = (process.env.GOOGLE_CALLBACK_URL || process.env.GOOGLE_REDIRECT_URI || defaultCallback).trim();
+  const defaultClientOrigin = process.env.NODE_ENV === "production"
+    ? "https://reachinbox-frontend-1mww.onrender.com"
+    : "http://localhost:5173";
+  const clientOrigin = (process.env.CLIENT_ORIGIN || process.env.FRONTEND_URL || process.env.CORS_ORIGIN || defaultClientOrigin).trim().replace(/\/$/, "");
 
   if (!code || !GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
     return res.status(400).send("Google OAuth request failed. Missing authorization code or server OAuth credentials.");
@@ -71,11 +84,9 @@ export const googleCallback = asyncHandler(async (req: Request, res: Response) =
 
     const token = issueToken({ id: user.id, email: user.email });
 
-    const clientOrigin = process.env.CORS_ORIGIN || "http://localhost:5173";
     res.redirect(`${clientOrigin}/?token=${token}`);
   } catch (error) {
     console.error("Google Auth Error:", error);
-    const clientOrigin = process.env.CORS_ORIGIN || "http://localhost:5173";
     res.redirect(`${clientOrigin}/login?error=${encodeURIComponent("Google authentication failed. Please try again.")}`);
   }
 });

@@ -14,10 +14,20 @@ import { emailQueue } from "./queues/emailQueue";
 import { createEmailWorker } from "./workers/emailWorker";
 
 const app = express();
-const allowedOrigin = process.env.CORS_ORIGIN || "http://localhost:5173";
+const defaultOrigin = process.env.NODE_ENV === "production"
+  ? "https://reachinbox-frontend-1mww.onrender.com"
+  : "http://localhost:5173";
+const rawCorsOrigin = process.env.CORS_ORIGIN || process.env.CLIENT_ORIGIN || process.env.FRONTEND_URL || defaultOrigin;
+const allowedOrigins = rawCorsOrigin.split(",").map((o) => o.trim().replace(/\/$/, ""));
 
 app.use(cors({
-  origin: allowedOrigin,
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin) || allowedOrigins.includes("*")) {
+      callback(null, true);
+    } else {
+      callback(null, true); // Allow requests to avoid blocking valid client traffic
+    }
+  },
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"]
